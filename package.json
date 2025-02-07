@@ -1,4 +1,15 @@
 {
+  "type":"module",
+  "name": "jeu-devinettes",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
     "chalk": "^5.4.1"
   }
