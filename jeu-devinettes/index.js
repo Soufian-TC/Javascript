@@ -1,81 +1,85 @@
-const readline = require("readline");
+import readline from "readline";
+
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-const cards = ["Europe", "Circus", "Virus", "Crocodile", "Moutarde", "Roi", "Harry Potter", "Basketball"];
-let deck = [];
-let players = [];
-let currentPlayerIndex = 0;
-let currentWord = "";
-let clues = {};
+const cartes = ["Europe", "Cirque", "Virus", "Crocodile", "Moutarde", "Roi", "Harry Potter", "Basketball"];
+let pioche = [];
+let joueurs = [];
+let joueurActuelIndex = 0;
+let motActuel = "";
+let indices = {};
 
-function initGame(numPlayers) {
-    deck = shuffleArray([...cards]);
-    players = Array.from({ length: numPlayers }, (_, i) => `Joueur ${i + 1}`);
-    console.log("\nDébut du jeu avec :", players);
-    startTurn();
+const poserQuestion = (question) => {
+    return new Promise((resolve) => {
+        rl.question(question, (reponse) => resolve(reponse.trim()));
+    });
+};
+
+function melangerTableau(tableau) {
+    for (let i = tableau.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tableau[i], tableau[j]] = [tableau[j], tableau[i]];
+    }
+    return tableau;
 }
 
-function shuffleArray(array) {
-    return array.sort(() => Math.random() - 0.5);
+async function initialiserJeu(nombreJoueurs) {
+    pioche = melangerTableau([...cartes]);
+    joueurs = Array.from({ length: nombreJoueurs }, (_, i) => `Joueur ${i + 1}`);
+    console.log("\nDébut du jeu avec :", joueurs);
+    await commencerTour();
 }
 
-function startTurn() {
-    if (deck.length === 0) {
+async function commencerTour() {
+    if (pioche.length === 0) {
         console.log("\nFin de la partie !");
         rl.close();
         return;
     }
 
-    currentWord = deck.pop();
-    clues = {};
-    console.log(`\n${players[currentPlayerIndex]} doit deviner le mot.`);
-    console.log(`Les joueurs qui donnent des indices voient le mot : ${currentWord}`);
-    
-    setTimeout(() => {
-        console.clear();
-        askClues();
-    }, 5000); // Cache le mot après 5 secondes
+    motActuel = pioche.pop();
+    indices = {};
+    console.log(`\n${joueurs[joueurActuelIndex]} doit deviner le mot.`);
+    console.log(`Les joueurs qui donnent des indices voient le mot : ${motActuel}`);
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    console.clear();
+
+    await demanderIndices();
 }
 
-function askClues() {
-    let remainingPlayers = players.filter((_, i) => i !== currentPlayerIndex);
-    let count = 0;
+async function demanderIndices() {
+    let joueursRestants = joueurs.filter((_, i) => i !== joueurActuelIndex);
 
-    function askNext() {
-        if (count < remainingPlayers.length) {
-            rl.question(`${remainingPlayers[count]}, donnez un indice : `, (clue) => {
-                clues[remainingPlayers[count]] = clue.trim().toLowerCase();
-                count++;
-                askNext();
-            });
-        } else {
-            guessWord();
-        }
+    for (let joueur of joueursRestants) {
+        let indice = await poserQuestion(`${joueur}, donnez un indice : `);
+        indices[joueur] = indice.toLowerCase();
     }
-    askNext();
+
+    await devinerMot();
 }
 
-function guessWord() {
-    let validClues = Object.values(clues);
-    console.log(`\nIndices donnés : ${validClues.join(", ")}`);
-    rl.question(`${players[currentPlayerIndex]}, quel est le mot ? `, (guess) => {
-        if (guess.trim().toLowerCase() === currentWord.toLowerCase()) {
-            console.log("Bonne réponse !");
-        } else {
-            console.log(`Mauvaise réponse ! Le mot était : **${currentWord}**`);
-        }
-        nextTurn();
-    });
+async function devinerMot() {
+    let indicesValides = Object.values(indices);
+    console.log(`\nIndices donnés : ${indicesValides.join(", ")}`);
+
+    let proposition = await poserQuestion(`${joueurs[joueurActuelIndex]}, quel est le mot ? `);
+
+    if (proposition.toLowerCase() === motActuel.toLowerCase()) {
+        console.log("Bonne réponse !");
+    } else {
+        console.log(`Mauvaise réponse ! Le mot était : **${motActuel}**`);
+    }
+
+    await tourSuivant();
 }
 
-function nextTurn() {
-    currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    startTurn();
+async function tourSuivant() {
+    joueurActuelIndex = (joueurActuelIndex + 1) % joueurs.length;
+    await commencerTour();
 }
 
-initGame(3);
-
-
+initialiserJeu(3);
